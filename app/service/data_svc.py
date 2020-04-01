@@ -4,22 +4,17 @@ import glob
 import os.path
 import pickle
 from base64 import b64encode
-from collections import namedtuple
 
 from app.objects.c_ability import Ability
 from app.objects.c_adversary import Adversary
 from app.objects.c_planner import Planner
 from app.objects.c_plugin import Plugin
 from app.objects.c_source import Source
-from app.objects.secondclass.c_fact import Fact
 from app.objects.secondclass.c_parser import Parser
 from app.objects.secondclass.c_parserconfig import ParserConfig
 from app.objects.secondclass.c_relationship import Relationship
 from app.objects.secondclass.c_requirement import Requirement
-from app.objects.secondclass.c_rule import Rule
 from app.utility.base_service import BaseService
-
-Adjustment = namedtuple('Adjustment', 'ability_id trait value offset')
 
 
 class DataService(BaseService):
@@ -157,7 +152,7 @@ class DataService(BaseService):
                 await self._load_sources(plug)
                 await self._load_planners(plug)
         except Exception as e:
-            self.log.debug(repr(e))
+            self.log.debug(repr(e), exc_info=True)
 
     async def _load_adversaries(self, plugin):
         for filename in glob.iglob('%s/adversaries/**/*.yml' % plugin.data_dir, recursive=True):
@@ -222,13 +217,7 @@ class DataService(BaseService):
     async def _load_sources(self, plugin):
         for filename in glob.iglob('%s/sources/*.yml' % plugin.data_dir, recursive=False):
             for src in self.strip_yml(filename):
-                source = Source(
-                    identifier=src['id'],
-                    name=src['name'],
-                    facts=[Fact(trait=f['trait'], value=str(f['value'])) for f in src.get('facts')],
-                    adjustments=await self._create_adjustments(src.get('adjustments')),
-                    rules=[Rule(**r) for r in src.get('rules', [])]
-                )
+                source = Source.load(src)
                 source.access = plugin.access
                 await self.store(source)
 
@@ -252,14 +241,6 @@ class DataService(BaseService):
                 await self.store(planner)
 
     @staticmethod
-    async def _create_adjustments(raw_adjustments):
-        x = []
-        if raw_adjustments:
-            for ability_id, adjustments in raw_adjustments.items():
-                for trait, block in adjustments.items():
-                    for change in block:
-                        x.append(Adjustment(ability_id, trait, change.get('value'), change.get('offset')))
-        return x
 
     async def _create_ability(self, ability_id, tactic=None, technique_name=None, technique_id=None, name=None, test=None,
                               description=None, executor=None, platform=None, cleanup=None, payloads=None, parsers=None,
