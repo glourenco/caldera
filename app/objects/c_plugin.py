@@ -15,6 +15,10 @@ class PluginSchema(ma.Schema):
     data_dir = ma.fields.String()
     access = ma.fields.Integer()
 
+    @ma.post_load
+    def build_plugin(self, data, **_):
+        return Plugin(**data)
+
 
 class Plugin(BaseObject):
 
