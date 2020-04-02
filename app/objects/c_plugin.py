@@ -2,10 +2,24 @@ import logging
 import os
 from importlib import import_module
 
+import marshmallow as ma
+
 from app.utility.base_object import BaseObject
 
 
+class PluginSchema(ma.Schema):
+    name = ma.fields.String()
+    enabled = ma.fields.Boolean()
+    address = ma.fields.String()
+    description = ma.fields.String()
+    data_dir = ma.fields.String()
+    access = ma.fields.Integer()
+
+
 class Plugin(BaseObject):
+
+    schema = PluginSchema()
+    display_schema = PluginSchema(only=['name', 'enabled', 'address'])
 
     @property
     def unique(self):
@@ -13,7 +27,7 @@ class Plugin(BaseObject):
 
     @property
     def display(self):
-        return self.clean(dict(name=self.name, enabled=self.enabled, address=self.address))
+        return self.clean(super().display)
 
     def __init__(self, name='virtual', description=None, address=None, enabled=False, data_dir=None, access=None):
         super().__init__()
@@ -33,7 +47,7 @@ class Plugin(BaseObject):
             existing.update('enabled', self.enabled)
         return existing
 
-    async def load(self):
+    async def load_plugin(self):
         try:
             plugin = self._load_module()
             self.description = plugin.description
