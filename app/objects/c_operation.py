@@ -1,3 +1,4 @@
+import ast
 import asyncio
 import copy
 import logging
@@ -259,7 +260,8 @@ class Operation(BaseObject):
 
     async def _get_planning_module(self, services):
         planning_module = import_module(self.planner.module)
-        return planning_module.LogicalPlanner(self, services.get('planning_svc'), **self.planner.params,
+        planner_params = ast.literal_eval(self.planner.params)
+        return planning_module.LogicalPlanner(self, services.get('planning_svc'), **planner_params,
                                               stopping_conditions=self.planner.stopping_conditions)
 
     async def _save_new_source(self, services):
